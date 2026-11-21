@@ -30934,6 +30934,109 @@ b:slider({name="hit chance",flag="trig.hc",min=1,max=100,default=70,suffix="%",c
 b:toggle({name="auto wall",flag="trig.aw",cb=o}):dep(h):settings():slider({name="min damage",flag="trig.awmindmg",min=0,max=150,cb=o});
 return true;
 end;
+D.aF=function()
+local ui = D.load("e")
+local Players_ = game:GetService("Players")
+local LP_ = Players_.LocalPlayer
+local page = ui.tabs.misc:page("music")
+local sec = page:section({ name = "music player" })
+local state = { soundId = "", sound = nil, volume = 50, loop = false }
+local function stopSound()
+if state.sound then
+pcall(function() state.sound:Stop() end)
+pcall(function() state.sound:Destroy() end)
+state.sound = nil
+end
+end
+local function parseId(raw)
+local digits = tostring(raw or ""):match("%d+")
+return digits
+end
+local function playSound()
+local id = parseId(state.soundId)
+if not id then return end
+stopSound()
+local snd = Instance.new("Sound")
+snd.Name = "NightCCMusic"
+snd.SoundId = "rbxassetid://" .. id
+snd.Volume = state.volume / 100
+snd.Looped = state.loop
+snd.Parent = game:GetService("SoundService")
+snd:Play()
+state.sound = snd
+end
+sec:input({ name = "sound id", flag = "music.id", placeholder = "rbxassetid number or link", cb = function(v)
+state.soundId = tostring(v or "")
+end })
+sec:slider({ name = "volume", flag = "music.vol", min = 0, max = 100, default = 50, suffix = "%", cb = function(v)
+state.volume = tonumber(v) or 50
+if state.sound then state.sound.Volume = state.volume / 100 end
+end })
+sec:toggle({ name = "loop", flag = "music.loop", cb = function(v)
+state.loop = v == true
+if state.sound then state.sound.Looped = state.loop end
+end })
+sec:button({ name = "play", cb = playSound })
+sec:button({ name = "pause / resume", cb = function()
+if state.sound then
+if state.sound.Playing then state.sound:Pause() else state.sound:Resume() end
+end
+end })
+sec:button({ name = "stop", cb = stopSound })
+pcall(function()
+getgenv().__nightccUnloadMusic = stopSound
+local prev = getgenv().__nightccUnload
+getgenv().__nightccUnload = function()
+pcall(stopSound)
+if type(prev) == "function" then pcall(prev) end
+end
+end)
+local secBody = page:section({ name = "body fire", side = 2 })
+local RunService_ = game:GetService("RunService")
+local glow = { on = false, size = 8, fire = nil, root = nil }
+local function destroyGlow()
+if glow.fire then pcall(function() glow.fire:Destroy() end) end
+glow.fire, glow.root = nil, nil
+end
+local function ensureGlow()
+local char = LP_.Character
+local root = char and char:FindFirstChild("HumanoidRootPart")
+if not root then destroyGlow(); return end
+if glow.root == root and glow.fire and glow.fire.Parent then return end
+destroyGlow()
+local f = Instance.new("Fire")
+f.Name = "NightCCBodyFire"
+f.Heat = 10
+f.Size = glow.size
+f.Color = Color3.fromRGB(255, 255, 255)
+f.SecondaryColor = Color3.fromRGB(190, 210, 255)
+f.Parent = root
+glow.fire, glow.root = f, root
+end
+RunService_.Heartbeat:Connect(function()
+if not glow.on then
+if glow.fire then destroyGlow() end
+return
+end
+ensureGlow()
+if glow.fire then glow.fire.Size = glow.size end
+end)
+secBody:toggle({ name = "body fire", flag = "fx.bodyfire", cb = function(v)
+glow.on = v == true
+if not glow.on then destroyGlow() end
+end })
+secBody:slider({ name = "fire size", flag = "fx.bodyfiresize", min = 2, max = 20, default = 8, cb = function(v)
+glow.size = tonumber(v) or 8
+end })
+pcall(function()
+local prev = getgenv().__nightccUnload
+getgenv().__nightccUnload = function()
+pcall(destroyGlow)
+if type(prev) == "function" then pcall(prev) end
+end
+end)
+return true
+end;
 D.aE=function()local m,j=D.load("b"),D.load("a");
 local h,b=D.load("e"),m.lp;
 local K=m.players;
@@ -31053,6 +31156,7 @@ D.load("aB");
 D.load("aC");
 D.load("aD");
 D.load("aE");
+D.load("aF");
 local function d(w)pcall(w);
 j();
 end;
@@ -31103,4 +31207,3 @@ pcall(function()
 end);
 m.publish(m.release);
 return true;
-
